@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Flappy Bird - Smile Edition</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- Load Face API first -->
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    <!-- Add these performance optimizations to <head> -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <link rel="preload" href="/static/assets/sprites/yellowbird-upflap.png" as="image">
+    <link rel="preload" href="/static/assets/sprites/background-day.png" as="image">
+</head>
+<body>
+    <div id="game-container" class="game-container">
+        <!-- Loading Screen (initially hidden) -->
+        <div id="loading-screen" class="loading" style="display: none;">
+            <div class="loading-spinner"></div>
+        </div>
+        
+        <!-- Main Menu -->
+        <div id="main-menu" class="screen active">
+            <h1>Flappy Bird - Smile Edition</h1>
+            <div class="player-info">
+                <span>Current Player: </span>
+                <span id="player-name">Player1</span>
+                <button id="change-player-btn">Change</button>
+            </div>
+            <div class="menu-buttons">
+                <button id="start-game-btn">Start Game</button>
+                <!-- <button id="calibrate-btn">Calibrate Smile</button> -->
+                <button id="calibrate-btn" class="input-btn" data-input="smile">Calibrate Smile</button>
+            </div>
+            
+            <!-- Game Settings -->
+            <div class="settings">
+                <div class="setting-group">
+                    <h3>Game Mode</h3>
+                    <div class="option-buttons" id="mode-buttons">
+                        <button class="mode-btn selected" data-mode="pipes">Pipes</button>
+                        <button class="mode-btn" data-mode="stars" >Stars</button>
+                        <button class="mode-btn" data-mode="balloons" disabled>Balloons</button>
+                        <button class="mode-btn" data-mode="pipes-and-stars" >Pipes & Stars</button>
+                        <button class="mode-btn" data-mode="all" disabled>All Modes</button>
+                    </div>
+                </div>
+                
+                <div class="setting-group">
+                    <h3>Difficulty</h3>
+                    <div class="option-buttons" id="difficulty-buttons">
+                        <button class="difficulty-btn" data-difficulty="easy">Easy</button>
+                        <button class="difficulty-btn selected" data-difficulty="normal">Normal</button>
+                        <button class="difficulty-btn" data-difficulty="hard">Hard</button>
+                        <button class="difficulty-btn" data-difficulty="arcade">Arcade</button>
+                    </div>
+                </div>
+                
+                <div class="setting-group">
+                    <h3>Input Mode</h3>
+                    <div class="option-buttons" id="input-buttons">
+                        <button class="input-btn selected" data-input="space">Space</button>
+                        <button class="input-btn" data-input="smile" disabled>Smile</button>
+                        <button class="input-btn" data-input="altitude" disabled>Altitude</button>
+                    </div>
+                </div>
+                <div id="controls-container">
+                    <!-- Input control instructions will be inserted here dynamically -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Screen -->
+        <div id="game-screen" class="screen">
+            <canvas id="game-canvas"></canvas>
+            <div id="score-display">
+                <span id="score">0</span>
+            </div>
+            <div id="lives-display">
+                <span id="lives-count">3/3</span>
+                <img id="heart-icon" src="{{ url_for('static', filename='assets/sprites/heart.png') }}" alt="Lives">
+            </div>
+            <button id="pause-btn">⏸️</button>
+        </div>
+        
+        <!-- Calibration screen -->
+        <div id="calibration-screen" style="display: none;">
+            <div id="smile-intensity-value" class="smile-value-display">0</div>
+            <div class="calibration-instructions">  <p>Smile as much as you can for three seconds</p>
+                <p>Stop Smiling for three seconds</p>
+                <p>Repeat if the red number is not stable while not smiling</p>
+            </div> <button id="exit-calibration-btn" class="calibration-exit-button-overlay">Exit to Main Menu</button>
+        </div>
+
+        <!-- Game Over Screen -->
+        <div id="game-over-screen" class="screen">
+            <h2>Game Over</h2>
+            <div id="score-container">
+                <div id="final-score">Score: 0</div>
+                <div id="high-score">High Score: 0</div>
+            </div>
+            <div class="menu-buttons">
+                <button id="play-again-btn">Play Again</button>
+                <button id="back-to-menu-btn">Main Menu</button>
+            </div>
+        </div>
+        
+        <!-- Pause Screen -->
+        <div id="pause-screen" class="screen">
+            <h2>Game Paused</h2>
+            <div class="menu-buttons">
+                <button id="continue-btn">Continue</button>
+                <button id="pause-main-menu-btn">Main Menu</button>
+            </div>
+        </div>
+
+        
+    <!-- Webcam container -->
+    <div id="webcam-container" style="display: none;">
+        <video id="webcam" autoplay playsinline muted></video>
+    </div>
+
+    <!-- The order of script loading is important -->
+    <!-- 1. Load utility modules first -->
+    <script type="module" src="{{ url_for('static', filename='js/utils/input.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/utils/collisions.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/utils/rendering.js') }}"></script>
+    
+    <!-- 2. Load game state and assets -->
+    <script type="module" src="{{ url_for('static', filename='js/gameState.js') }}"></script>
+    <!-- <script type="module" src="{{ url_for('static', filename='js/assets.js') }}"></script> -->
+    
+    <!-- 3. Load smile detection modules -->
+    <script type="module" src="{{ url_for('static', filename='js/smileDetector.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/calibration.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/webcam.js') }}"></script>
+    <!-- <script type="module" src="{{ url_for('static', filename='js/connector.js') }}"></script> -->
+    
+    <!-- 4. Load game modes -->
+    <script type="module" src="{{ url_for('static', filename='js/modes/pipes.js') }}"></script>
+    <!-- <script type="module" src="{{ url_for('static', filename='js/modes/stars.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/modes/pipesStars.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/modes/balloons.js') }}"></script> -->
+    
+    <!-- 5. Load main game file last -->
+    <script type="module" src="{{ url_for('static', filename='js/game.js') }}"></script>
+    
+    <!-- Non-module script for initializing the game -->
+    <script>
+        // This script handles initialization and buttons before modules are fully loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Show loading screen when buttons are clicked before modules are ready
+        //     document.getElementById('start-game-btn').addEventListener('click', function() {
+        //     console.log("Start button clicked from HTML handler");
+        //     if (typeof window.startGame === 'function') {
+        //         console.log("Calling window.startGame()");
+        //         window.startGame();
+        //     } else {
+        //         console.log("window.startGame is not available");
+        //         document.getElementById('loading-screen').style.display = 'flex';
+        //     }
+        // });
+            
+            // Mode selection buttons
+            const modeButtons = document.querySelectorAll('.mode-btn');
+            modeButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    modeButtons.forEach(btn => btn.classList.remove('selected'));
+                    this.classList.add('selected');
+                    localStorage.setItem('flappyGameMode', this.dataset.mode);
+                });
+            });
+            
+            // Difficulty selection buttons
+            const difficultyButtons = document.querySelectorAll('.difficulty-btn');
+            difficultyButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    difficultyButtons.forEach(btn => btn.classList.remove('selected'));
+                    this.classList.add('selected');
+                    localStorage.setItem('flappyDifficulty', this.dataset.difficulty);
+                });
+            });
+            
+            // Input selection buttons
+            const inputButtons = document.querySelectorAll('.input-btn');
+            inputButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    inputButtons.forEach(btn => btn.classList.remove('selected'));
+                    this.classList.add('selected');
+                    localStorage.setItem('flappyInputMethod', this.dataset.input);
+                    updateControlsInfo(this.dataset.input);
+                });
+            });
+            
+            // Update player name
+            document.getElementById('change-player-btn').addEventListener('click', function() {
+                const playerName = prompt('Enter your name:', localStorage.getItem('flappyPlayerName') || 'Player1');
+                if (playerName) {
+                    document.getElementById('player-name').textContent = playerName;
+                    localStorage.setItem('flappyPlayerName', playerName);
+                }
+            });
+            
+            // Load settings from localStorage
+            function loadSavedSettings() {
+                // Load player name
+                const savedName = localStorage.getItem('flappyPlayerName');
+                if (savedName) {
+                    document.getElementById('player-name').textContent = savedName;
+                }
+                
+                // Load game mode
+                const savedMode = localStorage.getItem('flappyGameMode');
+                if (savedMode) {
+                    modeButtons.forEach(btn => {
+                        if (btn.dataset.mode === savedMode) {
+                            btn.classList.add('selected');
+                        } else {
+                            btn.classList.remove('selected');
+                        }
+                    });
+                }
+                
+                // Load difficulty
+                const savedDifficulty = localStorage.getItem('flappyDifficulty');
+                if (savedDifficulty) {
+                    difficultyButtons.forEach(btn => {
+                        if (btn.dataset.difficulty === savedDifficulty) {
+                            btn.classList.add('selected');
+                        } else {
+                            btn.classList.remove('selected');
+                        }
+                    });
+                }
+                
+                // Load input method
+                const savedInput = localStorage.getItem('flappyInputMethod');
+                if (savedInput) {
+                    inputButtons.forEach(btn => {
+                        if (btn.dataset.input === savedInput) {
+                            btn.classList.add('selected');
+                        } else {
+                            btn.classList.remove('selected');
+                        }
+                    });
+                    updateControlsInfo(savedInput);
+                } else {
+                    updateControlsInfo('space');
+                }
+            }
+            
+            // Update controls info based on input method
+            function updateControlsInfo(inputMethod) {
+                const controlsContainer = document.getElementById('controls-container');
+                let controlsHtml = '';
+                
+                switch(inputMethod) {
+                    case 'space':
+                        controlsHtml = `
+                            <div class="controls-info">
+                                <p>Press the <strong>SPACE</strong> key or <strong>tap</strong> the screen to make the bird flap.</p>
+                            </div>
+                        `;
+                        break;
+                    case 'smile':
+                        controlsHtml = `
+                            <div class="controls-info">
+                                <p><strong>Smile</strong> to make the bird flap! The bigger your smile, the higher it goes.</p>
+                                <p>Make sure to calibrate your smile first.</p>
+                            </div>
+                        `;
+                        break;
+                    case 'altitude':
+                        controlsHtml = `
+                            <div class="controls-info">
+                                <p>Control the bird's <strong>altitude</strong> directly with your smile intensity.</p>
+                                <p>Make sure to calibrate your smile first.</p>
+                            </div>
+                        `;
+                        break;
+                }
+                
+                controlsContainer.innerHTML = controlsHtml;
+            }
+            
+            // Load saved settings
+            loadSavedSettings();
+        });
+    </script>
+    <script>
+        // document.getElementById('start-game-btn').addEventListener('click', function() {
+        //   console.log("Starting game manually");
+        //   // Show game screen
+        //   document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
+        //   document.getElementById('game-screen').style.display = 'block';
+        // });
+      </script>
+      
+</body>
+</html>

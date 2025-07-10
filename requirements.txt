@@ -1,0 +1,11 @@
+Flask==3.0.3
+Werkzeug==3.0.6
+Jinja2==3.1.6
+MarkupSafe==2.1.5
+itsdangerous==2.2.0
+click==8.1.8
+blinker==1.8.2
+# The following packages are not needed for the web app functionality
+# opencv-python==4.11.0.86
+# mediapipe>=0.10.11
+# numpy==1.23.5

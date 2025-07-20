@@ -44,9 +44,9 @@ export async function initWebcam() {
         console.log("Attempting to get user media for webcam...");
         videoStream = await navigator.mediaDevices.getUserMedia({
             video: {
-                width: { ideal: 320 },
-                height: { ideal: 240 },
-                frameRate: { ideal: 15 }
+                width: { ideal: 240 },
+                height: { ideal: 180 },
+                frameRate: { ideal: 10 }
             },
             audio: false
         });

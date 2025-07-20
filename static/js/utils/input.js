@@ -1,8 +1,9 @@
 // input.js - Manages game input methods (keyboard, touch, smile)
 import { gameState, sounds, gameSettings } from '../gameState.js';
-
+import { detectSmile } from '../smileDetector.js';
 let smileController = null;
 let controlMode = 'keyboard'; // Default control mode
+let smileDetectionLoopId = null;
 
 // Handle jump action
 function jump() {
@@ -232,19 +233,25 @@ function setupSettingsButtons(startGameCallback) {
 }
 
 // Start smile detection if it's the selected input method
-function startSmileDetectionIfSelected(startGameCallback) {
-  if ((gameSettings.inputMethod === 'smile' || gameSettings.inputMethod === 'altitude')) {
-    // Just log a message if smile controller is attempted but disabled
-    if (!smileController) {
-      console.log("Smile controller is disabled but was requested");
+function startSmileDetectionIfSelected() {
+    if ((gameSettings.inputMethod === 'smile' || gameSettings.inputMethod === 'altitude') && !smileDetectionLoopId) {
+        console.log("Starting smile detection loop.");
+        const runDetection = async () => {
+            if (gameState.running) { // Only detect if the game is actively running
+                await detectSmile();
+            }
+            smileDetectionLoopId = requestAnimationFrame(runDetection);
+        };
+        runDetection();
     }
-  }
 }
 
 // Stop smile detection
 function stopSmileDetection() {
-    if (smileController) {
-        smileController.stopSmileDetection();
+    if (smileDetectionLoopId) {
+        cancelAnimationFrame(smileDetectionLoopId);
+        smileDetectionLoopId = null;
+        console.log("Stopped smile detection loop.");
     }
 }
 

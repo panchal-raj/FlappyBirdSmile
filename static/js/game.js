@@ -17,8 +17,9 @@ import { setupInputListeners } from './utils/input.js';
 import { initWebcam, isWebcamReady, stopWebcam, showWebcamElement, hideWebcamElement, drawWebcamBackground } from './webcam.js';
 // Import calibration functions (ensure path is correct)
 import { startCalibrationScreen, stopCalibration} from './calibration.js';
-import { loadModels, faceApiLoaded, stopSmileUpdates } from './smileDetector.js';
-
+// import { loadModels, faceApiLoaded, stopSmileUpdates } from './smileDetector.js';
+import { loadModels, faceApiLoaded } from './smileDetector.js'; 
+import { startSmileDetectionIfSelected, stopSmileDetection } from './utils/input.js';
 
 // Add at the top of the file
 const isLowEndDevice = navigator.deviceMemory < 4 || 
@@ -394,6 +395,7 @@ function showScreen(screenName) {
             hideWebcamElement();
             if (pauseButton) pauseButton.style.display = 'none';
             if (screens.calibration) screens.calibration.style.display = 'none';
+            stopSmileDetection(); 
             break;
 
         default:
@@ -543,41 +545,57 @@ async function startGame() {
     gameState.bird.velocity = 0;
     gameState.groundPos = 0;
 
-    // --- Webcam logic for game start ---
-    if (gameSettings.inputMethod === 'smile' || gameSettings.inputMethod === 'altitude') {
-        // Smile input is active. Webcam STREAM needs to be ON for face-api.js.
-        // However, the webcam video ELEMENT (webcam-container) should be HIDDEN during gameplay.
-        if (!isWebcamReady()) {
-            console.log("Webcam not ready for smile input game, attempting to initialize...");
-            try {
-                await initWebcam(); // Initialize if not already (e.g., user selected smile then start)
-                if (!isWebcamReady()) {
-                    // If still not ready after attempt, alert and fallback.
-                    alert("Webcam is required for smile input but could not be started. Please calibrate or check permissions. Reverting to Space input.");
-                    // Simulate click on space button to update UI and settings
-                    const spaceButton = document.querySelector('.input-btn[data-input="space"]');
-                    if (spaceButton) spaceButton.click(); else gameSettings.inputMethod = 'space';
-                    stopWebcam(); // Ensure it's fully off if falling back
-                }
-                // If it became ready, proceed to hide its element.
-            } catch (error) {
-                console.error("Error initializing webcam for smile input game:", error);
-                alert("Webcam could not be initialized for smile input. Reverting to Space input.");
-                const spaceButton = document.querySelector('.input-btn[data-input="space"]');
-                if (spaceButton) spaceButton.click(); else gameSettings.inputMethod = 'space';
-                stopWebcam();
-            }
-        }
-        // If webcam is ready (either initially or after init attempt for smile mode)
-        // AND input method is still smile/altitude (didn't fallback)
-        if (isWebcamReady() && (gameSettings.inputMethod === 'smile' || gameSettings.inputMethod === 'altitude')) {
-             hideWebcamElement(); // Hide container, but keep stream active for detection.
-        }
+    // // --- Webcam logic for game start ---
+    // if (gameSettings.inputMethod === 'smile' || gameSettings.inputMethod === 'altitude') {
+    //     // Smile input is active. Webcam STREAM needs to be ON for face-api.js.
+    //     // However, the webcam video ELEMENT (webcam-container) should be HIDDEN during gameplay.
+    //     if (!isWebcamReady()) {
+    //         console.log("Webcam not ready for smile input game, attempting to initialize...");
+    //         try {
+    //             await initWebcam(); // Initialize if not already (e.g., user selected smile then start)
+    //             if (!isWebcamReady()) {
+    //                 // If still not ready after attempt, alert and fallback.
+    //                 alert("Webcam is required for smile input but could not be started. Please calibrate or check permissions. Reverting to Space input.");
+    //                 // Simulate click on space button to update UI and settings
+    //                 const spaceButton = document.querySelector('.input-btn[data-input="space"]');
+    //                 if (spaceButton) spaceButton.click(); else gameSettings.inputMethod = 'space';
+    //                 stopWebcam(); // Ensure it's fully off if falling back
+    //             }
+    //             // If it became ready, proceed to hide its element.
+    //         } catch (error) {
+    //             console.error("Error initializing webcam for smile input game:", error);
+    //             alert("Webcam could not be initialized for smile input. Reverting to Space input.");
+    //             const spaceButton = document.querySelector('.input-btn[data-input="space"]');
+    //             if (spaceButton) spaceButton.click(); else gameSettings.inputMethod = 'space';
+    //             stopWebcam();
+    //         }
+    //     }
+    //     // If webcam is ready (either initially or after init attempt for smile mode)
+    //     // AND input method is still smile/altitude (didn't fallback)
+    //     if (isWebcamReady() && (gameSettings.inputMethod === 'smile' || gameSettings.inputMethod === 'altitude')) {
+    //          hideWebcamElement(); // Hide container, but keep stream active for detection.
+    //     }
 
+    // } else {
+    //     // If NOT using smile/altitude input, stop webcam completely (stream and container).
+    //     stopWebcam();
+    //     if (typeof stopSmileUpdates === 'function') stopSmileUpdates(); // Ensures smile detection interval is cleared
+    // }
+        // REPLACE the entire webcam logic block (approx. lines 608-634) with this:
+    if (gameSettings.inputMethod === 'smile' || gameSettings.inputMethod === 'altitude') {
+        if (!isWebcamReady()) {
+            await initWebcam(); // Ensure webcam is on
+        }
+        if (isWebcamReady()) {
+            hideWebcamElement();
+            startSmileDetectionIfSelected(); // Start the new detection loop
+        } else {
+             alert("Webcam is required for smile input. Reverting to Space input.");
+             // Fallback logic here...
+        }
     } else {
-        // If NOT using smile/altitude input, stop webcam completely (stream and container).
         stopWebcam();
-        if (typeof stopSmileUpdates === 'function') stopSmileUpdates(); // Ensures smile detection interval is cleared
+        stopSmileDetection(); // Ensure detection is off for other modes
     }
 
     updateScore(0);
@@ -592,6 +610,7 @@ function resumeGame() {
     if (!gameState.running) { // If it was truly paused
         gameState.running = true;
         showScreen('game'); // Ensure game screen is shown
+        startSmileDetectionIfSelected();
         startLoop(gameLoop); // Use the existing startLoop with the main gameLoop
         console.log("Game resumed from pause.");
     }
@@ -602,6 +621,7 @@ function resumeGame() {
  */
 function gameOver() {
     console.log("Game Over triggered.");
+    stopSmileDetection();
     stopLoop();
     gameState.running = false;
 

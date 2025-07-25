@@ -6,7 +6,7 @@ import { getVideoElement } from './webcam.js';
 let faceMesh;
 let lastSmileScore = 0;
 // This threshold can be adjusted during a calibration step.
-let smileThreshold = 3.9; 
+let smileThreshold = 4.0; 
 
 let faceApiLoaded = false;
 

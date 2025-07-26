@@ -66,6 +66,11 @@ export function getSmileValue() {
     return lastSmileScore;
 }
 
+export function setSmileThreshold(newThreshold) {
+    console.log(`Setting new smile threshold to: ${newThreshold}`);
+    smileThreshold = newThreshold;
+}
+
 export { faceApiLoaded };
 
 // Functions no longer needed with this approach but exported to avoid breaking imports elsewhere.
